@@ -1,0 +1,41 @@
+plugins {
+    id 'java-library'
+}
+
+configurations {
+    jaxb
+}
+
+dependencies {
+    jaxb 'org.glassfish.jaxb:jaxb-xjc:2.3.1'
+    jaxb 'org.glassfish.jaxb:jaxb-runtime:2.3.1'
+    
+    api 'javax.xml.bind:jaxb-api:2.3.1'
+    api 'org.glassfish.jaxb:jaxb-runtime:2.3.1'
+}
+
+task generateJaxb {
+    def xsdDir = file('src/main/resources/xsd')
+    def outputDir = file('build/generated/sources/jaxb')
+    
+    inputs.dir xsdDir
+    outputs.dir outputDir
+    
+    doLast {
+        outputDir.mkdirs()
+        ant.taskdef(name: 'xjc', classname: 'com.sun.tools.xjc.XJCTask', classpath: configurations.jaxb.asPath)
+        ant.xjc(destdir: outputDir, package: "ru.nsu.fit.crackhash.model") {
+            schema(dir: xsdDir, includes: "*.xsd")
+        }
+    }
+}
+
+compileJava.dependsOn generateJaxb
+
+sourceSets {
+    main {
+        java {
+            srcDir 'build/generated/sources/jaxb'
+        }
+    }
+}

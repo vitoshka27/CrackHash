@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  manager:
+    build:
+      context: .
+      dockerfile: manager/Dockerfile
+    ports:
+      - "8085:8085"
+    networks:
+      - crackhash-net
+    environment:
+      - CRACKHASH_WORKER_URLS=http://worker-1:8081/internal/api/worker/hash/crack/task,http://worker-2:8081/internal/api/worker/hash/crack/task,http://worker-3:8081/internal/api/worker/hash/crack/task
+      - CRACKHASH_TIMEOUT=600000
+    volumes:
+      - .:/project:ro
+      - ./load_test_report.txt:/app/load_test_report.txt
+
+  worker-1:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    networks:
+      - crackhash-net
+    environment:
+      - MANAGER_URL=http://manager:8085/internal/api/manager/hash/crack/request
+
+  worker-2:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    networks:
+      - crackhash-net
+    environment:
+      - MANAGER_URL=http://manager:8085/internal/api/manager/hash/crack/request
+
+  worker-3:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    networks:
+      - crackhash-net
+    environment:
+      - MANAGER_URL=http://manager:8085/internal/api/manager/hash/crack/request
+networks:
+  crackhash-net:

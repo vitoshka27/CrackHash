@@ -1,0 +1,10 @@
+server:
+  port: 8081
+
+crackhash:
+  manager:
+    url: http://manager:8085/internal/api/manager/hash/crack/request
+
+spring:
+  application:
+    name: worker

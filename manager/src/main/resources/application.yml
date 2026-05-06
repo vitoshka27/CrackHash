@@ -1,0 +1,12 @@
+server:
+  port: 8085
+
+crackhash:
+  worker-urls: http://worker-1:8081/internal/api/worker/hash/crack/task,http://worker-2:8081/internal/api/worker/hash/crack/task,http://worker-3:8081/internal/api/worker/hash/crack/task
+  timeout: 600000
+  manager:
+    dispatch-pool-size: 600
+
+spring:
+  application:
+    name: manager

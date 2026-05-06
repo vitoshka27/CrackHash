@@ -1,0 +1,42 @@
+﻿# Gradle
+.gradle/
+build/
+**/build/
+
+# Java / JVM
+bin/
+out/
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and reports
+*.log
+reports/
+load_test_report.txt/
+summary.json
+
+# Temporary / generated
+**/tmp/
+**/generated/
+
+# Local env
+.env
+.env.*

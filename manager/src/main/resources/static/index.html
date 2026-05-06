@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrackHash - Распределенный взлом MD5</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-light.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-body: #fdfbf7;
+            --bg-card: #ffffff;
+            --text-main: #475569;
+            --text-dark: #1e293b;
+            --text-muted: #94a3b8;
+            --border-light: #e2e8f0;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --accent-blue: #3b82f6;
+            --bg-blue-light: #eff6ff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-light);
+            padding: 1.5rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 9999px;
+            transition: all 0.2s;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-dark);
+            background-color: var(--bg-body);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-blue);
+            background-color: var(--bg-blue-light);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 3rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .main-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            color: var(--text-dark);
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            align-items:flex-end;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"], input[type="number"] {
+            border: 1px solid var(--border-light);
+            background-color: transparent;
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            color: var(--text-dark);
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--bg-blue-light);
+        }
+
+        button.primary {
+            background-color: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-family: 'Outfit', sans-serif;
+            height: 44px;
+        }
+
+        button.primary:hover {
+            background-color: var(--accent-green-hover);
+        }
+
+        button.secondary {
+            background-color: var(--bg-blue-light);
+            color: var(--accent-blue);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Outfit', sans-serif;
+            height: 44px;
+        }
+
+        button.secondary:hover {
+            background-color: #dbeafe;
+        }
+
+        .requests-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .request-item {
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+        }
+
+        .req-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .req-id {
+            font-family: monospace;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .req-target {
+            font-size: 1.1rem;
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+        
+        .req-result {
+            margin-top: 0.5rem;
+            font-family: monospace;
+            padding: 0.5rem 1rem;
+            background-color: #f0fdf4;
+            color: #166534;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .status-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-IN_PROGRESS { background: #e0f2fe; color: #0369a1; }
+        .status-READY { background: #dcfce7; color: #15803d; }
+        .status-NOT_FOUND { background: #fef3c7; color: #b45309; }
+        .status-ERROR { background: #fee2e2; color: #b91c1c; }
+
+        .explorer-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 2rem;
+            height: calc(100vh - 200px);
+        }
+
+        .file-tree {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .file-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .file-content-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            font-weight: 500;
+            color: var(--text-dark);
+            background: #f8fafc;
+        }
+
+        .file-content-body {
+            flex: 1;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+            background: #fafafa;
+        }
+
+        .file-content-body pre {
+            margin: 0;
+            padding: 1.5rem;
+            font-size: 0.95rem;
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+        }
+
+        ul.tree {
+            list-style: none;
+            padding-left: 1rem;
+            margin: 0;
+        }
+
+        li.tree-node {
+            margin: 0.2rem 0;
+        }
+
+        .tree-item {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+
+        .tree-item:hover {
+            background: var(--bg-blue-light);
+        }
+
+        .tree-item.selected {
+            background: #e2e8f0;
+            font-weight: 500;
+        }
+
+        .tree-icon {
+            margin-right: 0.5rem;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .metric-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem; }
+        .metric-value { font-size: 1.5rem; font-weight: 800; color: var(--text-dark); }
+        .insight-box { background: #f8fafc; border-left: 4px solid var(--accent-blue); padding: 1rem; border-radius: 0 8px 8px 0; margin-top: 1rem; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>CrackHash</h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('bruteforce')">Дэшборд (Взлом)</button>
+            <button class="tab-btn" onclick="switchTab('explorer')">Исходный код</button>
+            <button class="tab-btn" onclick="switchTab('stresstest')">Нагрузочный тест</button>
+        </div>
+    </header>
+
+    <!-- TAB 1: Dashboard -->
+    <div id="tab-bruteforce" class="main-content active">
+        <div class="card">
+            <h2>Генератор MD5 (Утилита)</h2>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>Текст для хеширования</label>
+                    <input type="text" id="plainText" placeholder="Введите слово (напр. abcd)" autocomplete="off">
+                </div>
+                <div class="input-group" style="flex: 0.3;">
+                    <label>&nbsp;</label>
+                    <button class="secondary" onclick="generateMD5()">Сгенерировать хэш</button>
+                </div>
+            </div>
+            <div id="md5Result" style="display: none;" class="mb-2">
+                <span style="font-family: monospace; background: var(--bg-blue-light); padding: 0.5rem 1rem; border-radius: 8px; color: var(--accent-blue); font-size: 1.1rem;"></span>
+                <button class="tab-btn" style="padding: 0.3rem 0.8rem; margin-left:1rem; border: 1px solid var(--border-light);" onclick="copyToCrack()">Использовать для взлома ⬇</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Постановка задачи на перебор</h2>
+            <form id="crackForm">
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="hash">Хэш (MD5)</label>
+                        <input type="text" id="hash" placeholder="e2fc714c4727ee9395f324cd2e7f331f" required autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="input-group" style="flex: 0.3;">
+                        <label for="maxLength">Макс. длина слов</label>
+                        <input type="number" id="maxLength" min="1" max="10" placeholder="4" value="4" required>
+                    </div>
+                    <div class="input-group" style="flex: 0.3;">
+                        <label>&nbsp;</label>
+                        <button class="primary" type="submit">Запустить кластер</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="card" id="requestsCard" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin-bottom: 0;">История задач</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="tab-btn" style="border: 1px solid #fee2e2; color: #ef4444;" onclick="cancelAllTasks()">Отменить всё</button>
+                    <button class="tab-btn" style="border: 1px solid var(--border-light); color: var(--text-muted);" onclick="clearHistory()">Очистить историю</button>
+                </div>
+            </div>
+            <div class="requests-list" id="requestsList"></div>
+        </div>
+    </div>
+
+    <!-- TAB 2: File Explorer -->
+    <div id="tab-explorer" class="main-content">
+        <div class="explorer-container">
+            <div class="file-tree" id="fileTreeContainer">
+                <div style="color: var(--text-muted); font-size: 0.9rem;">Загрузка проекта...</div>
+            </div>
+            <div class="file-content">
+                <div class="file-content-header" id="fileNameHeader">Выберите файл для просмотра</div>
+                <div class="file-content-body">
+                    <pre><code id="fileCodeBlock" class="language-java">// Здесь будет отображаться исходный код...</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: Stress Test (Premium) -->
+    <div id="tab-stresstest" class="main-content">
+        <div class="card" style="max-width: 1200px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                <div>
+                    <h2 style="margin-bottom: 0.5rem; font-size: 1.8rem;">Профессиональный Стресс-тест</h2>
+                    <p style="color: var(--text-muted); margin-top: 0;">Цель: 10,000 VU. Анализ деградации и отказов.</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="startStressBtn" class="primary" onclick="startWebStressTest()">🚀 Запустить k6 (10k)</button>
+                    <button id="stopStressBtn" class="secondary" style="background:#fee2e2; color:#ef4444; display:none;" onclick="stopWebStressTest()">🛑 Стоп</button>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="background:#fff; border:1px solid var(--border-light); border-radius:12px; padding:1rem; height:350px;">
+                    <canvas id="stressChart"></canvas>
+                </div>
+                <div style="display: grid; gap: 0.75rem;">
+                    <div class="metric-card"><div class="metric-label">Users</div><div id="stressConcurrency" class="metric-value">0</div></div>
+                    <div class="metric-card"><div class="metric-label">Latency p(95)</div><div id="stressP95" class="metric-value">0 <small>ms</small></div></div>
+                    <div class="metric-card"><div class="metric-label">Rate</div><div id="stressRps" class="metric-value">0.0 <small>/s</small></div></div>
+                    <div class="metric-card"><div class="metric-label">Errors / Refused</div><div class="metric-value"><span id="stressErrors">0</span> / <span id="stressRefused">0</span></div></div>
+                </div>
+            </div>
+
+            <div id="stressInsights" style="display:none; margin-bottom: 1.5rem;">
+                <div id="insightBacklog" class="insight-box" style="display:none; border-color:#f59e0b;"><b>⚠ Очередь Tomcat переполнена:</b> Время отклика выросло (>2с). Сервер работает на пределе потоков.</div>
+                <div id="insightRefused" class="insight-box" style="display:none; border-color:#ef4444;"><b>❌ Соединение отклонено:</b> Socket Backlog ядра ОС исчерпан. Система упала.</div>
+                <div id="insightOk" class="insight-box" style="display:none; border-color:#10b981; background:#f0fdf4;"><b>✅ Стабильно:</b> Система справляется с нагрузкой.</div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
+                <div id="stressReport" style="display:none; border:1px solid var(--border-light); border-radius:12px; padding:1rem;">
+                    <b>Финальный вердикт:</b><div id="stressConclusion" style="margin-top:0.5rem;"></div>
+                </div>
+                <div id="stressLog" style="background:#0f172a; color:#38bdf8; padding:0.5rem; border-radius:10px; font-family:monospace; height:120px; overflow-y:auto; font-size:0.75rem;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.main-content').forEach(c => c.classList.remove('active'));
+            const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.innerText.toLowerCase().includes(tabId === 'bruteforce' ? 'взлом' : tabId === 'explorer' ? 'код' : 'тест'));
+            if (btn) btn.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if (tabId === 'explorer' && !window.explorerLoaded) { loadDirectoryTree(''); window.explorerLoaded = true; }
+        }
+
+        function generateMD5() {
+            const text = document.getElementById('plainText').value;
+            if (!text) return;
+            const hash = CryptoJS.MD5(text).toString();
+            const resDiv = document.getElementById('md5Result');
+            resDiv.style.display = 'block';
+            resDiv.querySelector('span').innerText = hash;
+            resDiv.dataset.hash = hash;
+        }
+        function copyToCrack() { document.getElementById('hash').value = document.getElementById('md5Result').dataset.hash; }
+
+        const API_BASE = '/api/hash';
+        let trackers = JSON.parse(localStorage.getItem('crackhash_history') || '{}');
+        window.addEventListener('load', () => {
+            if (Object.keys(trackers).length > 0) {
+                document.getElementById('requestsCard').style.display = 'block';
+                renderTrackers();
+                Object.keys(trackers).forEach(id => { if (trackers[id].status === 'IN_PROGRESS') trackers[id].interval = setInterval(() => pollStatus(id), 2500); });
+            }
+        });
+
+        async function pollStatus(reqId) {
+            try {
+                const res = await fetch(`${API_BASE}/status?requestId=${reqId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    trackers[reqId].status = data.status; trackers[reqId].data = data.data;
+                    if (trackers[reqId].status !== 'IN_PROGRESS') { clearInterval(trackers[reqId].interval); localStorage.setItem('crackhash_history', JSON.stringify(trackers)); }
+                    renderTrackers();
+                }
+            } catch (e) {}
+        }
+
+        document.getElementById('crackForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const hash = document.getElementById('hash').value.trim();
+            const maxLength = parseInt(document.getElementById('maxLength').value);
+            const res = await fetch(`${API_BASE}/crack`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hash, maxLength }) });
+            if (res.ok) {
+                const data = await res.json();
+                trackers[data.requestId] = { hash, maxLength, status: 'IN_PROGRESS', data: null, timestamp: Date.now() };
+                localStorage.setItem('crackhash_history', JSON.stringify(trackers));
+                renderTrackers();
+                trackers[data.requestId].interval = setInterval(() => pollStatus(data.requestId), 2500);
+            }
+        });
+
+        function renderTrackers() {
+            const list = document.getElementById('requestsList'); 
+            if (!list) return;
+            list.innerHTML = '';
+            
+            const ids = Object.keys(trackers).reverse();
+            if (ids.length > 0) {
+                document.getElementById('requestsCard').style.display = 'block';
+            } else {
+                document.getElementById('requestsCard').style.display = 'none';
+                return;
+            }
+
+            ids.forEach(reqId => {
+                const tr = trackers[reqId];
+                const card = document.createElement('div'); card.className = 'request-item';
+                let result = '';
+                if (tr.status==='READY' && tr.data) result = `<div class="req-result">Найдено: ${tr.data.join(', ')}</div>`;
+                card.innerHTML = `<div class="req-info"><div class="req-target">Цель: ${tr.hash} (L=${tr.maxLength})</div>${result}</div><span class="status-badge status-${tr.status}">${tr.status}</span>`;
+                list.appendChild(card);
+            });
+        }
+
+        // --- STRESS TEST ---
+        let stressRunning = false, stressInterval = null, stressChart = null, startTime = null, lastK6Line = "";
+        function initChart() {
+            const ctx = document.getElementById('stressChart').getContext('2d');
+            if (stressChart) stressChart.destroy();
+            stressChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: [], datasets: [{ label: 'VUs', data: [], borderColor: '#3b82f6', yAxisID: 'yVUs' }, { label: 'p95 Latency', data: [], borderColor: '#6366f1', yAxisID: 'yLat' }] },
+                options: { maintainAspectRatio: false, animation: false, scales: { yVUs: { position: 'left' }, yLat: { position: 'right' } } }
+            });
+        }
+
+        function clearHistory() {
+            Object.keys(trackers).forEach(id => clearInterval(trackers[id].interval));
+            trackers = {};
+            localStorage.removeItem('crackhash_history');
+            renderTrackers();
+        }
+
+        async function cancelAllTasks() {
+            const ok = confirm("Вы уверены, что хотите остановить все задачи в кластере и сбросить воркеров?");
+            if (!ok) return;
+            await fetch(`${API_BASE}/cancel-all`, { method: 'POST' });
+            
+            // Mark all active tasks as ERROR (cancelled)
+            Object.keys(trackers).forEach(id => {
+                if (trackers[id].status === 'IN_PROGRESS') {
+                    trackers[id].status = 'ERROR';
+                    clearInterval(trackers[id].interval);
+                }
+            });
+            localStorage.setItem('crackhash_history', JSON.stringify(trackers));
+            renderTrackers();
+        }
+
+        async function startWebStressTest() {
+            const res = await fetch(`${API_BASE}/stress/start`, { method: 'POST' });
+            if (res.ok) {
+                stressRunning = true; startTime = Date.now();
+                document.getElementById('stressInsights').style.display = 'block';
+                document.getElementById('startStressBtn').disabled = true;
+                document.getElementById('stopStressBtn').style.display = 'block';
+                initChart();
+                stressInterval = setInterval(pollStressStats, 1000);
+            }
+        }
+
+        async function pollStressStats() {
+            const res = await fetch(`${API_BASE}/stress/stats`);
+            if (res.ok) {
+                const stats = await res.json();
+                document.getElementById('stressConcurrency').innerText = (stats.concurrency || 0).toLocaleString();
+                document.getElementById('stressP95').innerText = stats.p95Latency || 0;
+                document.getElementById('stressRps').innerText = (stats.requestRate || 0).toFixed(1);
+                document.getElementById('stressErrors').innerText = stats.errorCount || 0;
+                document.getElementById('stressRefused').innerText = stats.refusedCount || 0;
+                
+                const latency = stats.p95Latency || stats.avgLatency || 0;
+                document.getElementById('insightOk').style.display = (latency < 200 && stats.errorCount === 0) ? 'block' : 'none';
+                document.getElementById('insightBacklog').style.display = (latency > 2000) ? 'block' : 'none';
+                document.getElementById('insightRefused').style.display = (stats.refusedCount > 0) ? 'block' : 'none';
+
+                if (stressChart) {
+                    stressChart.data.labels.push(Math.floor((Date.now()-startTime)/1000)+'s');
+                    stressChart.data.datasets[0].data.push(stats.concurrency);
+                    stressChart.data.datasets[1].data.push(latency);
+                    if (stressChart.data.labels.length > 30) { stressChart.data.labels.shift(); stressChart.data.datasets.forEach(d=>d.data.shift()); }
+                    stressChart.update();
+                }
+
+                if (stats.lastLogLine && stats.lastLogLine !== lastK6Line) {
+                    const logDiv = document.getElementById('stressLog');
+                    logDiv.innerText = stats.lastLogLine;
+                    lastK6Line = stats.lastLogLine;
+                }
+
+                if (!stats.running && stressRunning) { cleanupStressUI(); showStressReport(); }
+            }
+        }
+
+        async function showStressReport() {
+            const res = await fetch(`${API_BASE}/stress/report`);
+            if (res.ok) {
+                const report = await res.json();
+                document.getElementById('stressReport').style.display = 'block';
+                document.getElementById('stressConclusion').innerText = report.conclusion;
+            }
+        }
+
+        function cleanupStressUI() { stressRunning = false; clearInterval(stressInterval); document.getElementById('startStressBtn').disabled = false; document.getElementById('stopStressBtn').style.display = 'none'; }
+
+        // --- EXPLORER ---
+        async function loadDirectoryTree(path, containerElement = null) {
+            const res = await fetch(`/api/fs/tree?path=${encodeURIComponent(path)}`);
+            if (res.ok) {
+                const nodes = await res.json();
+                const ul = document.createElement('ul'); ul.className = path === '' ? 'tree root' : 'tree';
+                nodes.forEach(node => {
+                    const li = document.createElement('li'); li.className = 'tree-node';
+                    const item = document.createElement('div'); item.className = 'tree-item';
+                    item.innerHTML = `<span class="tree-icon">${node.isDirectory ? '📁' : '📄'}</span>${node.name}`;
+                    item.onclick = (e) => { e.stopPropagation(); if (node.isDirectory) { if (li.children.length > 1) { li.querySelector('ul').style.display = li.querySelector('ul').style.display === 'none' ? 'block' : 'none'; } else loadDirectoryTree(node.path, li); } else loadFileContent(node.path, node.name); };
+                    li.appendChild(item); ul.appendChild(li);
+                });
+                if (containerElement) containerElement.appendChild(ul); else { const c = document.getElementById('fileTreeContainer'); c.innerHTML = ''; c.appendChild(ul); }
+            }
+        }
+
+        async function loadFileContent(path, name) {
+            const res = await fetch(`/api/fs/content?path=${encodeURIComponent(path)}`);
+            if (res.ok) {
+                const content = await res.text();
+                document.getElementById('fileNameHeader').innerText = path;
+                const code = document.getElementById('fileCodeBlock'); code.textContent = content; code.className = 'language-java';
+                hljs.highlightElement(code);
+            }
+        }
+    </script>
+</body>
+</html>
